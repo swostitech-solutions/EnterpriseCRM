@@ -17,7 +17,8 @@ import {
   X, 
   FileCode2,
   BookOpen,
-  LogOut
+  LogOut,
+  Sparkles
 } from 'lucide-react';
 import { User } from '../types';
 
@@ -28,6 +29,7 @@ interface SidebarProps {
   isMobileOpen: boolean;
   onToggleMobile: () => void;
   onLogout?: () => void;
+  onUpgradeClick?: () => void;
 }
 
 export default function Sidebar({
@@ -36,7 +38,8 @@ export default function Sidebar({
   currentUser,
   isMobileOpen,
   onToggleMobile,
-  onLogout
+  onLogout,
+  onUpgradeClick
 }: SidebarProps) {
   
   const navItems = [
@@ -58,6 +61,13 @@ export default function Sidebar({
         <div className="flex items-center gap-2">
           <TrendingUp className="w-6 h-6 text-indigo-600" />
           <span className="font-extrabold text-sm tracking-tight font-sans uppercase">Enterprise CRM</span>
+          <button
+            onClick={onUpgradeClick}
+            className="ml-2 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition shadow-xs cursor-pointer flex items-center gap-1"
+            id="mobile-upgrade-btn"
+          >
+            <Sparkles className="w-3 h-3 text-amber-300 fill-amber-300" /> Upgrade
+          </button>
         </div>
         <button
           onClick={onToggleMobile}
@@ -82,6 +92,24 @@ export default function Sidebar({
             <span className="font-extrabold text-lg text-slate-800 tracking-tight font-sans">
               ENTERPRISE <span className="text-indigo-600">CRM</span>
             </span>
+          </div>
+
+          {/* Upgrade Plan Action Banner - prominent and high contrast top-left placement */}
+          <div className="mx-4 my-3 p-3 bg-indigo-50/80 border border-indigo-100 rounded-xl flex flex-col gap-1.5 shrink-0" id="sidebar-upgrade-promo">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-extrabold text-indigo-700 uppercase tracking-widest flex items-center gap-1">
+                <Sparkles className="w-3.5 h-3.5 text-amber-500 fill-amber-500" /> Free Tier
+              </span>
+              <span className="text-[9px] font-mono font-bold text-indigo-600 bg-indigo-100 px-1.5 py-0.2 rounded-full">v3.5</span>
+            </div>
+            <p className="text-[11px] text-slate-600 font-semibold leading-tight">Unlock higher limits & analytics.</p>
+            <button
+              onClick={onUpgradeClick}
+              className="w-full py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[10px] font-black tracking-wider uppercase transition-all duration-150 cursor-pointer flex items-center justify-center gap-1 shadow-sm active:scale-[0.98]"
+              id="sidebar-upgrade-cta"
+            >
+              Upgrade Node
+            </button>
           </div>
 
           {/* Navigation links */}
