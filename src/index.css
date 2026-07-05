@@ -1,0 +1,172 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    background-color: #f1f5f9 !important;
+    color: #0f172a !important;
+    font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  }
+}
+
+/* Light Grey / Slate Modern UI Theme Overrides */
+
+/* Core background levels */
+.bg-white {
+  background-color: #ffffff !important;
+}
+
+.bg-slate-50,
+.bg-gray-50,
+.bg-zinc-50,
+.bg-neutral-50,
+.bg-slate-100\/40,
+.bg-slate-50\/40 {
+  background-color: #f8fafc !important;
+}
+
+.bg-slate-100,
+.bg-gray-100,
+.bg-zinc-100 {
+  background-color: #f1f5f9 !important;
+}
+
+/* Secondary cards, tables, panels, and dropdowns */
+.bg-slate-50\/50,
+.bg-slate-100\/70,
+.bg-slate-100\/80,
+.bg-slate-200\/40,
+.bg-slate-200\/60 {
+  background-color: #f8fafc !important;
+}
+
+/* Global Typography Colors */
+.text-slate-900,
+.text-slate-800,
+.text-zinc-900,
+.text-zinc-800,
+.text-gray-900,
+.text-gray-800,
+.text-neutral-950,
+.text-slate-950 {
+  color: #0f172a !important; /* slate-900 */
+}
+
+.text-slate-700,
+.text-zinc-700,
+.text-gray-700 {
+  color: #334155 !important; /* slate-700 */
+}
+
+.text-slate-600,
+.text-slate-500,
+.text-zinc-500,
+.text-zinc-600,
+.text-gray-500,
+.text-neutral-500 {
+  color: #64748b !important; /* slate-500 */
+}
+
+/* Clearer and cleaner borders and gridlines */
+.border-slate-100,
+.border-slate-200,
+.border-slate-300,
+.border-zinc-200,
+.border-gray-200,
+.border-slate-200\/60,
+.border-slate-200\/40,
+.border-slate-200\/30 {
+  border-color: #e2e8f0 !important; /* slate-200 */
+}
+
+/* Form Inputs, Select lists, Textareas */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="date"],
+input[type="tel"],
+select,
+textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important; /* slate-300 */
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="number"]:focus,
+input[type="date"]:focus,
+input[type="tel"]:focus,
+select:focus,
+textarea:focus {
+  border-color: #4f46e5 !important; /* indigo-600 */
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15) !important;
+  outline: none;
+}
+
+/* Hover background effects for tables, lists, and interactive elements */
+.hover\:bg-slate-50:hover,
+.hover\:bg-slate-50\/80:hover,
+.hover\:bg-slate-100\/50:hover,
+.hover\:bg-gray-50:hover,
+.hover\:bg-zinc-50:hover,
+.hover\:bg-slate-200\/40:hover {
+  background-color: #f1f5f9 !important;
+}
+
+/* Table cells header and background styles */
+th {
+  background-color: #f8fafc !important;
+  color: #334155 !important; /* slate-700 */
+  border-color: #e2e8f0 !important;
+}
+
+td {
+  border-color: #f1f5f9 !important;
+}
+
+/* Badges and tags color safety */
+.text-emerald-950 {
+  color: #065f46 !important; /* emerald-800 */
+}
+.bg-emerald-50\/70,
+.bg-emerald-50 {
+  background-color: #ecfdf5 !important; /* emerald-50 */
+  border-color: #a7f3d0 !important; /* emerald-200 */
+}
+
+.text-rose-950 {
+  color: #9f1239 !important; /* rose-800 */
+}
+.bg-rose-50\/70,
+.bg-rose-50 {
+  background-color: #fff1f2 !important; /* rose-50 */
+  border-color: #fecdd3 !important; /* rose-200 */
+}
+
+.text-indigo-950 {
+  color: #3730a3 !important; /* indigo-800 */
+}
+.bg-indigo-50\/70,
+.bg-indigo-50 {
+  background-color: #e0e7ff !important; /* indigo-100 */
+  border-color: #c7d2fe !important; /* indigo-200 */
+}
+
+/* Thin modern scrollbar for desktop clients */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+

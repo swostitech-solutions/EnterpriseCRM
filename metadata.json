@@ -1,0 +1,6 @@
+{
+  "name": "Enterprise CRM Dashboard",
+  "description": "A comprehensive, responsive CRM platform for client management, appointment scheduling, inventory tracking, sales pipeline, invoicing, user roles, reports, and real-time logs.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
