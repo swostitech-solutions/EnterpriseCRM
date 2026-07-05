@@ -22,7 +22,7 @@ import {
   SEED_LOGS
 } from './types';
 
-// Component imports
+// Component imports.
 import Sidebar from './components/Sidebar';
 import DashboardOverview from './components/DashboardOverview';
 import ClientManager from './components/ClientManager';
