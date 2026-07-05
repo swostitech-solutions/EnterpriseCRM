@@ -51,7 +51,7 @@ export default function App() {
   const [isPricingOpen, setIsPricingOpen] = useState(false);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annually'>('annually');
 
-  // Pricing Contact Form States
+  // Pricing Contact Form States.
   const [selectedPlanForContact, setSelectedPlanForContact] = useState<{ name: string; price: string } | null>(null);
   const [pricingContactName, setPricingContactName] = useState('');
   const [pricingContactCompany, setPricingContactCompany] = useState('');
