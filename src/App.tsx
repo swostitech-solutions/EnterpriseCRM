@@ -36,7 +36,7 @@ import DocumentationView from './components/DocumentationView';
 import LoginScreen from './components/LoginScreen';
 
 // UI icons for notification center
-import { Bell, ShieldCheck, AlertCircle, X, CircleCheck, Check, Sparkles, Zap, Shield, HelpCircle } from 'lucide-react';
+import { Bell, ShieldCheck, AlertCircle, X, CircleCheck, Check, Sparkles, Zap, Shield, HelpCircle, Building2, Mail, Phone, Globe, Users, ArrowLeft } from 'lucide-react';
 
 interface Toast {
   id: string;
@@ -50,6 +50,16 @@ export default function App() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isPricingOpen, setIsPricingOpen] = useState(false);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annually'>('annually');
+
+  // Pricing Contact Form States
+  const [selectedPlanForContact, setSelectedPlanForContact] = useState<{ name: string; price: string } | null>(null);
+  const [pricingContactName, setPricingContactName] = useState('');
+  const [pricingContactCompany, setPricingContactCompany] = useState('');
+  const [pricingContactEmail, setPricingContactEmail] = useState('');
+  const [pricingContactPhone, setPricingContactPhone] = useState('');
+  const [pricingContactRegion, setPricingContactRegion] = useState('North America');
+  const [pricingContactTeamSize, setPricingContactTeamSize] = useState('1-10');
+  const [pricingContactNotes, setPricingContactNotes] = useState('');
 
   // Core CRM States
   const [users, setUsers] = useState<User[]>([]);
@@ -687,18 +697,85 @@ export default function App() {
     addToast('info', `Test drive profile set to: ${target.name} (${target.role})`);
   };
 
-  // Pricing Plan selector callback
+  // Pricing Plan selector callback - now opens the details/contact registration form
   const handleSelectPlan = (planName: string, price: string) => {
+    setSelectedPlanForContact({ name: planName, price });
+    
+    // Pre-populate with current user details if available
+    if (currentUser) {
+      setPricingContactName(currentUser.name || '');
+      setPricingContactEmail(currentUser.email || '');
+    } else {
+      setPricingContactName('');
+      setPricingContactEmail('');
+    }
+    setPricingContactCompany('');
+    setPricingContactPhone('');
+    setPricingContactRegion('North America');
+    setPricingContactTeamSize('1-10');
+    setPricingContactNotes('');
+  };
+
+  // Submit callback for the pricing upgrade contact form
+  const handleSubmitPricingContact = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPlanForContact) return;
+
+    if (!pricingContactName.trim()) {
+      addToast('error', 'Contact name is required.');
+      return;
+    }
+    if (!pricingContactEmail.trim()) {
+      addToast('error', 'Contact email is required.');
+      return;
+    }
+    if (!pricingContactCompany.trim()) {
+      addToast('error', 'Company / Organization name is required.');
+      return;
+    }
+    if (!pricingContactPhone.trim()) {
+      addToast('error', 'Phone number is required.');
+      return;
+    }
+
+    // Success transaction actions
+    const planLabel = `${selectedPlanForContact.name} (${billingCycle === 'annually' ? 'Annual' : 'Monthly'} cycle, ${selectedPlanForContact.price})`;
+    
+    // 1. Log detailed upgrade transaction in logs list
+    appendLog(
+      'Plan Workspace Activated', 
+      `Activated ${planLabel} workspace node for client "${pricingContactName}" at "${pricingContactCompany}" (${pricingContactEmail}, ${pricingContactPhone}). Region: ${pricingContactRegion}, Team Size: ${pricingContactTeamSize}.`
+    );
+
+    // 2. Automatically seed as a new Active client or Lead to make it persistent and keep client's detailed info in state!
+    const newClient: Client = {
+      id: `client-${Date.now()}`,
+      name: pricingContactName,
+      company: pricingContactCompany,
+      email: pricingContactEmail,
+      phone: pricingContactPhone,
+      status: 'Active',
+      address: `Workspace billing node (${pricingContactRegion})`,
+      notes: `Activated on ${selectedPlanForContact.name} Plan via workspace pricing flow. Team: ${pricingContactTeamSize}. Custom requirement notes: ${pricingContactNotes || 'None'}`,
+      tags: ['SaaS-Customer', selectedPlanForContact.name],
+      createdAt: new Date().toISOString().split('T')[0]
+    };
+
+    setClients((prev) => {
+      const updated = [newClient, ...prev];
+      localStorage.setItem('crm_clients', JSON.stringify(updated));
+      return updated;
+    });
+
+    // 3. Clear modal states
     setIsPricingOpen(false);
-    
-    // Log the transaction
-    appendLog('Subscription Upgraded', `Upgraded node subscription to the ${planName} plan (${billingCycle === 'annually' ? 'Annual' : 'Monthly'} cycle, ${price}).`);
-    
-    // Toast notification
+    setSelectedPlanForContact(null);
+
+    // 4. Toast notification
     const newToast: Toast = {
       id: `toast-${Date.now()}`,
       type: 'success',
-      message: `Successfully updated system workspace to the ${planName} Plan (${billingCycle === 'annually' ? 'Annual' : 'Monthly'} cycle, ${price})!`
+      message: `System node successfully activated under ${pricingContactCompany}! All detailed profile records saved.`
     };
     setToasts((prev) => [newToast, ...prev]);
   };
@@ -897,17 +974,24 @@ export default function App() {
             <div className="flex justify-between items-start pb-4 border-b border-slate-200 shrink-0" id="pricing-header">
               <div>
                 <span className="inline-flex items-center gap-1 text-[10px] uppercase font-mono font-black text-indigo-700 bg-indigo-50 border border-indigo-100 px-2.5 py-1 rounded-full">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500 fill-amber-500" /> Scalable Node Clearing
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500 fill-amber-500" /> {selectedPlanForContact ? 'Tenant Configuration' : 'Scalable Node Clearing'}
                 </span>
                 <h2 className="text-2xl font-black text-slate-800 tracking-tight mt-1 font-sans">
-                  Upgrade Your Enterprise CRM Workspace
+                  {selectedPlanForContact 
+                    ? `Register Your ${selectedPlanForContact.name} Workspace` 
+                    : 'Upgrade Your Enterprise CRM Workspace'}
                 </h2>
                 <p className="text-xs text-slate-500 font-semibold">
-                  Select the computational profile that matches your organization's daily operation volume.
+                  {selectedPlanForContact 
+                    ? 'Please provide contact and organizational billing details to activate this computational node.' 
+                    : "Select the computational profile that matches your organization's daily operation volume."}
                 </p>
               </div>
               <button
-                onClick={() => setIsPricingOpen(false)}
+                onClick={() => {
+                  setIsPricingOpen(false);
+                  setSelectedPlanForContact(null);
+                }}
                 className="p-1.5 hover:bg-slate-200 rounded-lg text-slate-500 hover:text-slate-800 transition cursor-pointer"
                 id="close-pricing-modal"
               >
@@ -918,259 +1002,429 @@ export default function App() {
             {/* Modal Scrollable Content Container */}
             <div className="flex-1 overflow-y-auto py-6 space-y-6" id="pricing-scrollable-body">
               
-              {/* Annual/Monthly Billing Toggle Switcher */}
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200" id="billing-toggle-container">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-amber-50 rounded-lg text-amber-600 border border-amber-100">
-                    <Zap className="w-5 h-5 fill-amber-500" />
+              {selectedPlanForContact ? (
+                /* ---------------------------------------------------- */
+                /* DETAILED CLIENT REGISTRATION AND CONTACT FORM        */
+                /* ---------------------------------------------------- */
+                <form onSubmit={handleSubmitPricingContact} className="space-y-6" id="pricing-contact-form">
+                  
+                  {/* Selected Plan Summary Card */}
+                  <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-indigo-600 rounded-lg text-white">
+                        <Sparkles className="w-5 h-5 text-amber-300 fill-amber-300" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-700">Selected Option</span>
+                        <h3 className="text-base font-black text-slate-800">{selectedPlanForContact.name} Workspace Profile</h3>
+                        <p className="text-xs text-slate-500 font-medium">Billed {billingCycle === 'annually' ? 'Annually (Save 20%)' : 'Monthly'}</p>
+                      </div>
+                    </div>
+                    <div className="text-left sm:text-right">
+                      <span className="text-3xl font-black text-indigo-700">{selectedPlanForContact.price}</span>
+                      <p className="text-[10px] text-emerald-600 font-bold bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full mt-1 inline-block">
+                        {billingCycle === 'annually' ? 'Annual commitment' : 'Monthly rolling'}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-800">Choose billing frequency</h3>
-                    <p className="text-xs text-slate-500 font-medium">Commit annually to unlock an instant 20% database subscription discount.</p>
-                  </div>
-                </div>
 
-                <div className="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200 shrink-0">
-                  <button
-                    onClick={() => setBillingCycle('monthly')}
-                    className={`px-4 py-1.5 text-xs font-bold rounded-md transition cursor-pointer ${
-                      billingCycle === 'monthly'
-                        ? 'bg-white text-slate-800 shadow-xs'
-                        : 'text-slate-500 hover:text-slate-800'
-                    }`}
-                  >
-                    Monthly
-                  </button>
-                  <button
-                    onClick={() => setBillingCycle('annually')}
-                    className={`px-4 py-1.5 text-xs font-bold rounded-md transition cursor-pointer flex items-center gap-1.5 ${
-                      billingCycle === 'annually'
-                        ? 'bg-indigo-600 text-white shadow-sm'
-                        : 'text-slate-500 hover:text-slate-800'
-                    }`}
-                  >
-                    Annually
-                    <span className="text-[9px] bg-amber-400 text-slate-950 px-1.5 py-0.2 rounded-full font-black uppercase tracking-wider">
-                      Save 20%
-                    </span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Pricing Cards Grid - Startup, SMB, Enterprise */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6" id="pricing-cards-grid">
-                
-                {/* 1. Startup Plan */}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col justify-between hover:shadow-md transition relative overflow-hidden" id="plan-card-startup">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-extrabold uppercase tracking-widest text-slate-500">
-                        Startup Plan
-                      </span>
-                      <span className="text-[9px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
-                        Lower features
-                      </span>
+                  {/* Fields Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {/* Full Name */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                        Authorized Agent / Full Name <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={pricingContactName}
+                        onChange={(e) => setPricingContactName(e.target.value)}
+                        placeholder="e.g. David Chen"
+                        className="w-full px-3 py-2 text-xs font-semibold bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 text-slate-800 placeholder-slate-400"
+                        id="pricing-input-name"
+                      />
                     </div>
 
-                    <div className="flex items-baseline">
-                      <span className="text-4xl font-black text-slate-800">
-                        {billingCycle === 'annually' ? '$15' : '$19'}
-                      </span>
-                      <span className="text-slate-500 text-xs font-semibold ml-1">/ mo</span>
-                    </div>
-                    {billingCycle === 'annually' && (
-                      <span className="block text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded w-max">
-                        Billed as $180/year
-                      </span>
-                    )}
-                    <p className="text-xs text-slate-500 leading-relaxed font-medium border-b border-slate-100 pb-4">
-                      Perfect for light workloads, micro-businesses, and initial CRM testing.
-                    </p>
-
-                    <ul className="space-y-3 pt-2 text-xs">
-                      <li className="flex items-start gap-2.5">
-                        <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                        <span className="text-slate-600">Up to <strong>100 clients</strong></span>
-                      </li>
-                      <li className="flex items-start gap-2.5">
-                        <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                        <span className="text-slate-600">Standard sales pipeline board</span>
-                      </li>
-                      <li className="flex items-start gap-2.5">
-                        <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                        <span className="text-slate-600">Invoicing & Billing (max 10/mo)</span>
-                      </li>
-                      <li className="flex items-start gap-2.5">
-                        <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                        <span className="text-slate-600">Single active staff login</span>
-                      </li>
-                      <li className="flex items-start gap-2.5 text-slate-400">
-                        <span className="shrink-0 text-slate-300 mt-0.5">✕</span>
-                        <span className="line-through">Real-time reports & analytics</span>
-                      </li>
-                      <li className="flex items-start gap-2.5 text-slate-400">
-                        <span className="shrink-0 text-slate-300 mt-0.5">✕</span>
-                        <span className="line-through">Custom staff roles configuration</span>
-                      </li>
-                    </ul>
-                  </div>
-
-                  <button
-                    onClick={() => handleSelectPlan('Startup', billingCycle === 'annually' ? '$15/mo' : '$19/mo')}
-                    className="mt-8 w-full py-2.5 border border-slate-200 hover:border-indigo-600 bg-white hover:bg-indigo-50/50 text-slate-700 hover:text-indigo-600 rounded-xl text-xs font-black tracking-wider uppercase transition cursor-pointer"
-                  >
-                    Select Startup Node
-                  </button>
-                </div>
-
-                {/* 2. SMB Plan */}
-                <div className="bg-white rounded-2xl border-2 border-indigo-600 shadow-md p-6 flex flex-col justify-between hover:shadow-lg transition relative overflow-hidden" id="plan-card-smb">
-                  {/* "Most Popular" Banner tag */}
-                  <div className="absolute top-0 right-0 bg-indigo-600 text-white text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-bl-xl shadow-xs">
-                    Popular Option
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-extrabold uppercase tracking-widest text-indigo-600">
-                        SMB Plan
-                      </span>
-                      <span className="text-[9px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
-                        Mid-tier features
-                      </span>
+                    {/* Company Name */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                        Company / Organization Name <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={pricingContactCompany}
+                        onChange={(e) => setPricingContactCompany(e.target.value)}
+                        placeholder="e.g. Apex Tech Solutions"
+                        className="w-full px-3 py-2 text-xs font-semibold bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 text-slate-800 placeholder-slate-400"
+                        id="pricing-input-company"
+                      />
                     </div>
 
-                    <div className="flex items-baseline">
-                      <span className="text-4xl font-black text-slate-800">
-                        {billingCycle === 'annually' ? '$39' : '$49'}
-                      </span>
-                      <span className="text-slate-500 text-xs font-semibold ml-1">/ mo</span>
-                    </div>
-                    {billingCycle === 'annually' && (
-                      <span className="block text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded w-max">
-                        Billed as $468/year
-                      </span>
-                    )}
-                    <p className="text-xs text-slate-500 leading-relaxed font-medium border-b border-slate-100 pb-4">
-                      Perfect for growing businesses requiring multiple role permissions and analytics.
-                    </p>
-
-                    <ul className="space-y-3 pt-2 text-xs">
-                      <li className="flex items-start gap-2.5">
-                        <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                        <span className="text-slate-600">Up to <strong>1,000 clients</strong></span>
-                      </li>
-                      <li className="flex items-start gap-2.5">
-                        <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                        <span className="text-slate-600">Multi-stage sales board</span>
-                      </li>
-                      <li className="flex items-start gap-2.5">
-                        <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                        <span className="text-slate-600">Unlimited Invoicing & Billing</span>
-                      </li>
-                      <li className="flex items-start gap-2.5">
-                        <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                        <span className="text-slate-600">Up to <strong>5 staff profiles</strong></span>
-                      </li>
-                      <li className="flex items-start gap-2.5">
-                        <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                        <span className="text-slate-600">Basic reports & dashboard charts</span>
-                      </li>
-                      <li className="flex items-start gap-2.5 text-slate-400">
-                        <span className="shrink-0 text-slate-300 mt-0.5">✕</span>
-                        <span className="line-through">Custom roles configuration</span>
-                      </li>
-                    </ul>
-                  </div>
-
-                  <button
-                    onClick={() => handleSelectPlan('SMB', billingCycle === 'annually' ? '$39/mo' : '$49/mo')}
-                    className="mt-8 w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black tracking-wider uppercase transition shadow-md hover:shadow-lg cursor-pointer"
-                  >
-                    Select SMB Node
-                  </button>
-                </div>
-
-                {/* 3. Enterprise Plan */}
-                <div className="bg-slate-900 rounded-2xl border border-slate-800 shadow-sm p-6 flex flex-col justify-between hover:shadow-md transition relative overflow-hidden text-white" id="plan-card-enterprise">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-extrabold uppercase tracking-widest text-indigo-400">
-                        Enterprise Plan
-                      </span>
-                      <span className="text-[9px] font-bold text-indigo-400 bg-indigo-950/50 px-2 py-0.5 rounded border border-indigo-900/40">
-                        All features
-                      </span>
+                    {/* Email */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                        Work Email Address <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        value={pricingContactEmail}
+                        onChange={(e) => setPricingContactEmail(e.target.value)}
+                        placeholder="e.g. support@apextech.com"
+                        className="w-full px-3 py-2 text-xs font-semibold bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 text-slate-800 placeholder-slate-400"
+                        id="pricing-input-email"
+                      />
                     </div>
 
-                    <div className="flex items-baseline">
-                      <span className="text-4xl font-black text-white">
-                        {billingCycle === 'annually' ? '$79' : '$99'}
-                      </span>
-                      <span className="text-slate-400 text-xs font-semibold ml-1">/ mo</span>
+                    {/* Phone Number */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                        Contact Phone Number <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="tel"
+                        required
+                        value={pricingContactPhone}
+                        onChange={(e) => setPricingContactPhone(e.target.value)}
+                        placeholder="e.g. +1 (555) 234-5678"
+                        className="w-full px-3 py-2 text-xs font-semibold bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 text-slate-800 placeholder-slate-400"
+                        id="pricing-input-phone"
+                      />
                     </div>
-                    {billingCycle === 'annually' && (
-                      <span className="block text-[10px] text-emerald-400 font-bold bg-emerald-950/40 border border-emerald-900/30 px-2 py-0.5 rounded w-max">
-                        Billed as $948/year
-                      </span>
-                    )}
-                    <p className="text-xs text-slate-400 leading-relaxed font-medium border-b border-slate-800 pb-4">
-                      Ultimate capabilities for high-volume enterprise pipelines and advanced inventory.
-                    </p>
 
-                    <ul className="space-y-3 pt-2 text-xs">
-                      <li className="flex items-start gap-2.5">
-                        <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                        <span className="text-slate-200"><strong>Unlimited</strong> clients & leads</span>
-                      </li>
-                      <li className="flex items-start gap-2.5">
-                        <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                        <span className="text-slate-200">Custom sales automation pipelines</span>
-                      </li>
-                      <li className="flex items-start gap-2.5">
-                        <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                        <span className="text-slate-200">Advanced Inventory & warehouse logs</span>
-                      </li>
-                      <li className="flex items-start gap-2.5">
-                        <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                        <span className="text-slate-200">Custom clearance & role setup</span>
-                      </li>
-                      <li className="flex items-start gap-2.5">
-                        <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                        <span className="text-slate-200">Full Reports & Real-time analytics</span>
-                      </li>
-                      <li className="flex items-start gap-2.5">
-                        <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                        <span className="text-slate-200">Dedicated Success Manager (24/7)</span>
-                      </li>
-                    </ul>
+                    {/* Region */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                        Deployment Geographic Region
+                      </label>
+                      <select
+                        value={pricingContactRegion}
+                        onChange={(e) => setPricingContactRegion(e.target.value)}
+                        className="w-full px-3 py-2 text-xs font-semibold bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 text-slate-800"
+                        id="pricing-input-region"
+                      >
+                        <option value="North America">North America (US-East / US-West)</option>
+                        <option value="Europe / EMEA">Europe (Frankfurt / Dublin)</option>
+                        <option value="Asia Pacific / APAC">Asia Pacific (Singapore / Tokyo)</option>
+                        <option value="Latin America / LATAM">Latin America (São Paulo)</option>
+                      </select>
+                    </div>
+
+                    {/* Estimated Team Size */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                        Estimated CRM Team Size
+                      </label>
+                      <select
+                        value={pricingContactTeamSize}
+                        onChange={(e) => setPricingContactTeamSize(e.target.value)}
+                        className="w-full px-3 py-2 text-xs font-semibold bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 text-slate-800"
+                        id="pricing-input-teamsize"
+                      >
+                        <option value="1-10">1 - 10 active agents</option>
+                        <option value="11-50">11 - 50 active agents</option>
+                        <option value="51-200">51 - 200 active agents</option>
+                        <option value="200+">200+ enterprise agents</option>
+                      </select>
+                    </div>
+
+                    {/* Special Provisioning Instructions */}
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                        Provisioning Notes & Custom Instructions (Optional)
+                      </label>
+                      <textarea
+                        value={pricingContactNotes}
+                        onChange={(e) => setPricingContactNotes(e.target.value)}
+                        placeholder="e.g. Please pre-configure standard tags, enable advanced invoice taxes calculator, and pre-load database entries."
+                        rows={3}
+                        className="w-full px-3 py-2 text-xs font-semibold bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 text-slate-800 placeholder-slate-400"
+                        id="pricing-input-notes"
+                      />
+                    </div>
                   </div>
 
-                  <button
-                    onClick={() => handleSelectPlan('Enterprise', billingCycle === 'annually' ? '$79/mo' : '$99/mo')}
-                    className="mt-8 w-full py-2.5 bg-white hover:bg-slate-100 text-slate-900 rounded-xl text-xs font-black tracking-wider uppercase transition cursor-pointer"
-                  >
-                    Select Enterprise Node
-                  </button>
-                </div>
+                  {/* Form Submission and Back actions */}
+                  <div className="pt-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPlanForContact(null)}
+                      className="px-4 py-2 text-xs font-extrabold text-slate-600 hover:text-indigo-600 transition flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <ArrowLeft className="w-4 h-4" /> Change Plan Selection
+                    </button>
 
-              </div>
+                    <button
+                      type="submit"
+                      className="w-full sm:w-auto px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black tracking-wider uppercase transition flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-[0.98] cursor-pointer"
+                    >
+                      <Sparkles className="w-4 h-4 text-amber-300 fill-amber-300" />
+                      Submit & Activate {selectedPlanForContact.name} Node
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                /* ---------------------------------------------------- */
+                /* DEFAULT VIEW - BILLING TOGGLE AND PRICING PLANS GRID */
+                /* ---------------------------------------------------- */
+                <>
+                  {/* Annual/Monthly Billing Toggle Switcher */}
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200" id="billing-toggle-container">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-amber-50 rounded-lg text-amber-600 border border-amber-100">
+                        <Zap className="w-5 h-5 fill-amber-500" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-800">Choose billing frequency</h3>
+                        <p className="text-xs text-slate-500 font-medium">Commit annually to unlock an instant 20% database subscription discount.</p>
+                      </div>
+                    </div>
 
-              {/* Enterprise CRM SLA Guarantee & Trust Banner */}
-              <div className="bg-white rounded-xl border border-slate-200 p-4 flex flex-col sm:flex-row items-center gap-4 justify-between" id="pricing-trust-banner">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
-                    <Shield className="w-5 h-5" />
+                    <div className="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200 shrink-0">
+                      <button
+                        onClick={() => setBillingCycle('monthly')}
+                        className={`px-4 py-1.5 text-xs font-bold rounded-md transition cursor-pointer ${
+                          billingCycle === 'monthly'
+                            ? 'bg-white text-slate-800 shadow-xs'
+                            : 'text-slate-500 hover:text-slate-800'
+                        }`}
+                      >
+                        Monthly
+                      </button>
+                      <button
+                        onClick={() => setBillingCycle('annually')}
+                        className={`px-4 py-1.5 text-xs font-bold rounded-md transition cursor-pointer flex items-center gap-1.5 ${
+                          billingCycle === 'annually'
+                            ? 'bg-indigo-600 text-white shadow-sm'
+                            : 'text-slate-500 hover:text-slate-800'
+                        }`}
+                      >
+                        Annually
+                        <span className="text-[9px] bg-amber-400 text-slate-950 px-1.5 py-0.2 rounded-full font-black uppercase tracking-wider">
+                          Save 20%
+                        </span>
+                      </button>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-xs font-black text-slate-800">ISO-27001 & SOC-2 Certified Nodes</h4>
-                    <p className="text-[11px] text-slate-500 font-medium">Every CRM tenant is strictly sandboxed with bank-level encryption, multi-region database redundancy, and a 99.99% active SLA uptime guarantee.</p>
+
+                  {/* Pricing Cards Grid - Startup, SMB, Enterprise */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6" id="pricing-cards-grid">
+                    
+                    {/* 1. Startup Plan */}
+                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col justify-between hover:shadow-md transition relative overflow-hidden" id="plan-card-startup">
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-extrabold uppercase tracking-widest text-slate-500">
+                            Startup Plan
+                          </span>
+                          <span className="text-[9px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                            Lower features
+                          </span>
+                        </div>
+
+                        <div className="flex items-baseline">
+                          <span className="text-4xl font-black text-slate-800">
+                            {billingCycle === 'annually' ? '$15' : '$19'}
+                          </span>
+                          <span className="text-slate-500 text-xs font-semibold ml-1">/ mo</span>
+                        </div>
+                        {billingCycle === 'annually' && (
+                          <span className="block text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded w-max">
+                            Billed as $180/year
+                          </span>
+                        )}
+                        <p className="text-xs text-slate-500 leading-relaxed font-medium border-b border-slate-100 pb-4">
+                          Perfect for light workloads, micro-businesses, and initial CRM testing.
+                        </p>
+
+                        <ul className="space-y-3 pt-2 text-xs">
+                          <li className="flex items-start gap-2.5">
+                            <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                            <span className="text-slate-600">Up to <strong>100 clients</strong></span>
+                          </li>
+                          <li className="flex items-start gap-2.5">
+                            <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                            <span className="text-slate-600">Standard sales pipeline board</span>
+                          </li>
+                          <li className="flex items-start gap-2.5">
+                            <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                            <span className="text-slate-600">Invoicing & Billing (max 10/mo)</span>
+                          </li>
+                          <li className="flex items-start gap-2.5">
+                            <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                            <span className="text-slate-600">Single active staff login</span>
+                          </li>
+                          <li className="flex items-start gap-2.5 text-slate-400">
+                            <span className="shrink-0 text-slate-300 mt-0.5">✕</span>
+                            <span className="line-through">Real-time reports & analytics</span>
+                          </li>
+                          <li className="flex items-start gap-2.5 text-slate-400">
+                            <span className="shrink-0 text-slate-300 mt-0.5">✕</span>
+                            <span className="line-through">Custom staff roles configuration</span>
+                          </li>
+                        </ul>
+                      </div>
+
+                      <button
+                        onClick={() => handleSelectPlan('Startup', billingCycle === 'annually' ? '$15/mo' : '$19/mo')}
+                        className="mt-8 w-full py-2.5 border border-slate-200 hover:border-indigo-600 bg-white hover:bg-indigo-50/50 text-slate-700 hover:text-indigo-600 rounded-xl text-xs font-black tracking-wider uppercase transition cursor-pointer"
+                      >
+                        Select Startup Node
+                      </button>
+                    </div>
+
+                    {/* 2. SMB Plan */}
+                    <div className="bg-white rounded-2xl border-2 border-indigo-600 shadow-md p-6 flex flex-col justify-between hover:shadow-lg transition relative overflow-hidden" id="plan-card-smb">
+                      {/* "Most Popular" Banner tag */}
+                      <div className="absolute top-0 right-0 bg-indigo-600 text-white text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-bl-xl shadow-xs">
+                        Popular Option
+                      </div>
+
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-extrabold uppercase tracking-widest text-indigo-600">
+                            SMB Plan
+                          </span>
+                          <span className="text-[9px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
+                            Mid-tier features
+                          </span>
+                        </div>
+
+                        <div className="flex items-baseline">
+                          <span className="text-4xl font-black text-slate-800">
+                            {billingCycle === 'annually' ? '$39' : '$49'}
+                          </span>
+                          <span className="text-slate-500 text-xs font-semibold ml-1">/ mo</span>
+                        </div>
+                        {billingCycle === 'annually' && (
+                          <span className="block text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded w-max">
+                            Billed as $468/year
+                          </span>
+                        )}
+                        <p className="text-xs text-slate-500 leading-relaxed font-medium border-b border-slate-100 pb-4">
+                          Perfect for growing businesses requiring multiple role permissions and analytics.
+                        </p>
+
+                        <ul className="space-y-3 pt-2 text-xs">
+                          <li className="flex items-start gap-2.5">
+                            <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                            <span className="text-slate-600">Up to <strong>1,000 clients</strong></span>
+                          </li>
+                          <li className="flex items-start gap-2.5">
+                            <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                            <span className="text-slate-600">Multi-stage sales board</span>
+                          </li>
+                          <li className="flex items-start gap-2.5">
+                            <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                            <span className="text-slate-600">Unlimited Invoicing & Billing</span>
+                          </li>
+                          <li className="flex items-start gap-2.5">
+                            <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                            <span className="text-slate-600">Up to <strong>5 staff profiles</strong></span>
+                          </li>
+                          <li className="flex items-start gap-2.5">
+                            <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                            <span className="text-slate-600">Basic reports & dashboard charts</span>
+                          </li>
+                          <li className="flex items-start gap-2.5 text-slate-400">
+                            <span className="shrink-0 text-slate-300 mt-0.5">✕</span>
+                            <span className="line-through">Custom roles configuration</span>
+                          </li>
+                        </ul>
+                      </div>
+
+                      <button
+                        onClick={() => handleSelectPlan('SMB', billingCycle === 'annually' ? '$39/mo' : '$49/mo')}
+                        className="mt-8 w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black tracking-wider uppercase transition shadow-md hover:shadow-lg cursor-pointer"
+                      >
+                        Select SMB Node
+                      </button>
+                    </div>
+
+                    {/* 3. Enterprise Plan */}
+                    <div className="bg-slate-900 rounded-2xl border border-slate-800 shadow-sm p-6 flex flex-col justify-between hover:shadow-md transition relative overflow-hidden text-white" id="plan-card-enterprise">
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-extrabold uppercase tracking-widest text-indigo-400">
+                            Enterprise Plan
+                          </span>
+                          <span className="text-[9px] font-bold text-indigo-400 bg-indigo-950/50 px-2 py-0.5 rounded border border-indigo-900/40">
+                            All features
+                          </span>
+                        </div>
+
+                        <div className="flex items-baseline">
+                          <span className="text-4xl font-black text-white">
+                            {billingCycle === 'annually' ? '$79' : '$99'}
+                          </span>
+                          <span className="text-slate-400 text-xs font-semibold ml-1">/ mo</span>
+                        </div>
+                        {billingCycle === 'annually' && (
+                          <span className="block text-[10px] text-emerald-400 font-bold bg-emerald-950/40 border border-emerald-900/30 px-2 py-0.5 rounded w-max">
+                            Billed as $948/year
+                          </span>
+                        )}
+                        <p className="text-xs text-slate-400 leading-relaxed font-medium border-b border-slate-800 pb-4">
+                          Ultimate capabilities for high-volume enterprise pipelines and advanced inventory.
+                        </p>
+
+                        <ul className="space-y-3 pt-2 text-xs">
+                          <li className="flex items-start gap-2.5">
+                            <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                            <span className="text-slate-200"><strong>Unlimited</strong> clients & leads</span>
+                          </li>
+                          <li className="flex items-start gap-2.5">
+                            <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                            <span className="text-slate-200">Custom sales automation pipelines</span>
+                          </li>
+                          <li className="flex items-start gap-2.5">
+                            <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                            <span className="text-slate-200">Advanced Inventory & warehouse logs</span>
+                          </li>
+                          <li className="flex items-start gap-2.5">
+                            <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                            <span className="text-slate-200">Custom clearance & role setup</span>
+                          </li>
+                          <li className="flex items-start gap-2.5">
+                            <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                            <span className="text-slate-200">Full Reports & Real-time analytics</span>
+                          </li>
+                          <li className="flex items-start gap-2.5">
+                            <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                            <span className="text-slate-200">Dedicated Success Manager (24/7)</span>
+                          </li>
+                        </ul>
+                      </div>
+
+                      <button
+                        onClick={() => handleSelectPlan('Enterprise', billingCycle === 'annually' ? '$79/mo' : '$99/mo')}
+                        className="mt-8 w-full py-2.5 bg-white hover:bg-slate-100 text-slate-900 rounded-xl text-xs font-black tracking-wider uppercase transition cursor-pointer"
+                      >
+                        Select Enterprise Node
+                      </button>
+                    </div>
+
                   </div>
-                </div>
-                <div className="flex items-center gap-1.5 text-xs text-indigo-600 font-extrabold shrink-0">
-                  <HelpCircle className="w-4 h-4" /> Need a Custom Tier?
-                </div>
-              </div>
+
+                  {/* Enterprise CRM SLA Guarantee & Trust Banner */}
+                  <div className="bg-white rounded-xl border border-slate-200 p-4 flex flex-col sm:flex-row items-center gap-4 justify-between" id="pricing-trust-banner">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
+                        <Shield className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-black text-slate-800">ISO-27001 & SOC-2 Certified Nodes</h4>
+                        <p className="text-[11px] text-slate-500 font-medium">Every CRM tenant is strictly sandboxed with bank-level encryption, multi-region database redundancy, and a 99.99% active SLA uptime guarantee.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs text-indigo-600 font-extrabold shrink-0">
+                      <HelpCircle className="w-4 h-4" /> Need a Custom Tier?
+                    </div>
+                  </div>
+                </>
+              )}
 
             </div>
 
@@ -1178,7 +1432,10 @@ export default function App() {
             <div className="flex items-center justify-between pt-4 border-t border-slate-200 shrink-0 text-xs font-semibold text-slate-500" id="pricing-footer">
               <span>* Upgrade takes effect immediately. Cancel or switch anytime.</span>
               <button
-                onClick={() => setIsPricingOpen(false)}
+                onClick={() => {
+                  setIsPricingOpen(false);
+                  setSelectedPlanForContact(null);
+                }}
                 className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-lg transition cursor-pointer"
               >
                 Close View
